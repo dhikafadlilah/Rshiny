@@ -1,0 +1,77 @@
+# Load paket Shiny
+library(shiny)
+
+# Membaca data
+data <- data.frame(
+  Month = c("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Des"),
+  X1 = c(150000,160000,170000,180000,190000,200000,210000,220000,230000,240000,250000,260000),
+  X2 = c(8000,9500,10000,10500,11000,9000,11500,12000,12500,13000,14000,15000),
+  X3 = c(5,4.5,4.8,4.6,5.1,4.7,4.9,5,5.2,5.3,5.4,5.5),
+  X4 = c(8.5,8.2,8.4,8.5,8.6,8.7,8.8,8.9,8.7,8.8,8.9,9),
+  X5 = c(20000,22000,25000,23000,30000,28000,27000,35000,40000,45000,50000,60000),
+  Y = c(120,150,160,165,180,170,190,210,230,250,300,350)
+)
+
+# Membuat UI (User Interface)
+ui <- fluidPage(
+  titlePanel("Sales Prediction Dashboard"),
+  
+  # Sidebar layout
+  sidebarLayout(
+    sidebarPanel(
+      # Input untuk variabel prediktor
+      numericInput("input_X1", "Number of website visitors (X1):", value = 150000),
+      numericInput("input_X2", "Number of monthly transactions (X2):", value = 8000),
+      numericInput("input_X3", "Average number of items per transactions (X3):", value = 5),
+      numericInput("input_X4", "Customer satisfaction rating (X4):", value = 8.5),
+      numericInput("input_X5", "Number of online advertisements (X5):", value = 20000)
+    ),
+    
+    # Main layout
+    mainPanel(
+      # Output untuk menampilkan tabel hasil regresi
+      h4("Multiple Linear Regression Equation:"),
+      verbatimTextOutput("regression_model"),
+      # Output untuk menampilkan hasil prediksi
+      h4("Estimated Monthly Sales (in thousand USD):"),
+      verbatimTextOutput("output_sales")
+    )
+  )
+)
+
+# Membuat server
+server <- function(input, output) {
+  # Membuat model regresi linear berganda
+  model <- lm(Y ~ X1 + X2 + X3 + X4 + X5, data = data)
+  
+  # Menyusun prediksi berdasarkan input pengguna
+  predicted_sales <- reactive({
+    new_data <- data.frame(
+      X1 = input$input_X1,
+      X2 = input$input_X2,
+      X3 = input$input_X3,
+      X4 = input$input_X4,
+      X5 = input$input_X5
+    )
+    prediction <- predict(model, new_data)
+    round(prediction)
+  })
+  
+  # Menampilkan hasil estimasi regresi
+  output$regression_model <- renderPrint({
+    cat(paste("Y =", round(coef(model)[1], 5), "+",
+              round(coef(model)[2], 5),"* X1 +",
+              round(coef(model)[3], 5),"* X2 +",
+              round(coef(model)[4], 5),"* X3 +",
+              round(coef(model)[5], 5),"* X4 +",
+              round(coef(model)[6], 5),"* X5"))
+  })
+  
+  # Menampilkan hasil prediksi
+  output$output_sales <- renderText({
+    paste("$", format(predicted_sales(), big.mark = ",", scientific = FALSE))
+  })
+}
+
+# Menjalankan aplikasi Shiny
+shinyApp(ui, server)
